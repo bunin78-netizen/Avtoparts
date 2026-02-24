@@ -8,6 +8,7 @@ dependencies = [
   "uvicorn[standard]>=0.24",
   "sqlalchemy>=2.0",
   "pydantic>=2.5",
+  "prometheus-client>=0.19",
 ]
 
 [tool.pytest.ini_options]
