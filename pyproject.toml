@@ -1,0 +1,15 @@
+[project]
+name = "autoparts-shop"
+version = "0.1.0"
+description = "MVP backend for AutoParts Shop"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.104",
+  "uvicorn[standard]>=0.24",
+  "sqlalchemy>=2.0",
+  "pydantic>=2.5",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+addopts = "-q"
