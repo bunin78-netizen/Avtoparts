@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,10 +11,16 @@ from app.logging_config import setup_logging
 from app.models.entities import Category, Product, User
 from app.monitoring import add_monitoring
 
+
 setup_logging()
 app = FastAPI(title="AutoParts Shop API", version="0.1.0")
 app.include_router(router)
 add_monitoring(app)
+
+
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def ui_home() -> str:
+    return Path("app/ui_index.html").read_text(encoding="utf-8")
 
 
 @app.on_event("startup")

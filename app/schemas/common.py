@@ -1,12 +1,16 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class CategoryOut(BaseModel):
+class ORMBaseModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CategoryOut(ORMBaseModel):
     id: int
     name: str
 
 
-class ProductOut(BaseModel):
+class ProductOut(ORMBaseModel):
     id: int
     article: str
     brand: str
@@ -35,7 +39,7 @@ class OrderCreateIn(BaseModel):
     user_id: int
 
 
-class UserOut(BaseModel):
+class UserOut(ORMBaseModel):
     id: int
     email: str
     full_name: str
