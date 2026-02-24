@@ -241,5 +241,356 @@
 - обновление статистики товаров;
 - резервное копирование БД.
 
-## 5. Итог
-Документ описывает полную архитектуру, функциональные требования, API-контракты и интеграционные сценарии для реализации интернет-магазина автозапчастей AutoParts Shop под рынок Украины.
+## 5. Требования к производительности
+
+### 5.1 Скорость ответа API
+- GET запросы: `< 200ms` (95 перцентиль)
+- POST запросы: `< 500ms` (95 перцентиль)
+- Поиск товаров: `< 3s` (включая запросы к поставщикам)
+- Обработка платежа: `< 1s`
+
+### 5.2 Масштабируемость
+- Поддержка до `1000` одновременных пользователей
+- До `100` запросов в секунду
+- База данных: до `10 млн` товаров
+- Кэширование часто запрашиваемых данных в Redis
+
+### 5.3 Доступность
+- Uptime: `99.9%`
+- Автоматический restart при падении
+- Health checks каждые `30` секунд
+- Мониторинг через Prometheus + Grafana
+
+## 6. Требования к безопасности
+
+### 6.1 Аутентификация
+- JWT токены с временем жизни `1 час`
+- Refresh токены с временем жизни `30 дней`
+- Безопасное хранение паролей (`bcrypt`)
+- Rate limiting на login endpoints (`5 попыток / минуту`)
+
+### 6.2 Защита данных
+- HTTPS для всех соединений (обязательно)
+- XSS защита
+- CSRF токены для форм
+- SQL injection защита (ORM)
+- Валидация всех входных данных
+- Sanitization пользовательского контента
+
+### 6.3 API ключи
+- Хранение в переменных окружения (`.env`)
+- Rotation ключей каждые `90` дней
+- Логирование всех обращений к внешним API
+- Обработка ошибок без раскрытия чувствительной информации
+
+## 7. Тестирование
+
+### 7.1 Unit тесты
+
+```python
+# Пример pytest тестов
+
+import pytest
+from app.services.supplier_sync import SupplierSyncService
+
+
+@pytest.mark.asyncio
+async def test_search_across_suppliers(db_session):
+    """Тест поиска у поставщиков"""
+
+    service = SupplierSyncService(db_session)
+    results = await service.search_across_suppliers("1234567", "BOSCH")
+
+    assert isinstance(results, list)
+    assert len(results) > 0
+    assert all("article" in r for r in results)
+    assert all("price" in r for r in results)
+
+
+def test_create_order(db_session, test_user):
+    """Тест создания заказа"""
+
+    from app.services.order_service import OrderService
+
+    order_service = OrderService(db_session)
+    order = order_service.create_order(
+        user_id=test_user.id,
+        items=[{"product_id": 1, "quantity": 2}],
+        delivery={...},
+        recipient={...},
+    )
+
+    assert order.id is not None
+    assert order.status == "new"
+    assert len(order.items) == 1
+```
+
+### 7.2 Integration тесты
+- Тестирование интеграций с поставщиками (mock API)
+- Тестирование платежных систем (sandbox)
+- Тестирование Новой Почты API
+- Тестирование мессенджеров (mock bot)
+
+### 7.3 Load тесты
+- Apache JMeter или Locust
+- Симуляция 1000 одновременных пользователей
+- Проверка response time под нагрузкой
+- Проверка работы БД под нагрузкой
+
+## 8. Развертывание
+
+### 8.1 Production environment
+
+```yaml
+# docker-compose.prod.yml
+
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./frontend/build:/usr/share/nginx/html
+    depends_on:
+      - backend
+    restart: always
+
+  backend:
+    build: ./backend
+    command: gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    restart: always
+    deploy:
+      replicas: 3
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+
+  celery_worker:
+    build: ./backend
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    restart: always
+    deploy:
+      replicas: 2
+
+  celery_beat:
+    build: ./backend
+    command: celery -A app.celery_app beat --loglevel=info
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+    env_file:
+      - .env
+    depends_on:
+      - db
+      - redis
+    restart: always
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: always
+
+  grafana:
+    image: grafana/grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    restart: always
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+```
+
+## 9. Мониторинг и логирование
+
+### 9.1 Метрики (Prometheus)
+
+```python
+# app/monitoring.py
+
+from prometheus_client import Counter, Histogram, Gauge
+import time
+
+# Счетчики запросов
+http_requests_total = Counter(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['method', 'endpoint', 'status']
+)
+
+# Время выполнения запросов
+http_request_duration = Histogram(
+    'http_request_duration_seconds',
+    'HTTP request duration',
+    ['method', 'endpoint']
+)
+
+# Активные пользователи
+active_users = Gauge(
+    'active_users',
+    'Number of active users'
+)
+
+# Использование в middleware
+from fastapi import Request
+import time
+
+@app.middleware("http")
+async def monitor_requests(request: Request, call_next):
+    start_time = time.time()
+
+    response = await call_next(request)
+
+    duration = time.time() - start_time
+
+    http_requests_total.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code
+    ).inc()
+
+    http_request_duration.labels(
+        method=request.method,
+        endpoint=request.url.path
+    ).observe(duration)
+
+    return response
+```
+
+### 9.2 Логирование
+
+```python
+# app/logging_config.py
+
+import logging
+from logging.handlers import RotatingFileHandler
+import sys
+
+
+def setup_logging():
+    # Формат логов
+    log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+    # Консольный handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(logging.Formatter(log_format))
+
+    # Файловый handler (с ротацией)
+    file_handler = RotatingFileHandler(
+        'logs/app.log',
+        maxBytes=10485760,  # 10MB
+        backupCount=10
+    )
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(logging.Formatter(log_format))
+
+    # Ошибки отдельно
+    error_handler = RotatingFileHandler(
+        'logs/error.log',
+        maxBytes=10485760,
+        backupCount=10
+    )
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(logging.Formatter(log_format))
+
+    # Корневой logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
+    root_logger.addHandler(console_handler)
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(error_handler)
+```
+
+## 10. Roadmap (Будущие функции)
+
+### Фаза 2 (3-6 месяцев)
+- Мобильное приложение (React Native / Flutter)
+- Программа лояльности
+- Система скидок и акций
+- Чат с менеджером (онлайн поддержка)
+- Сравнение товаров
+- Рекомендательная система
+- Multi-language support (UA, RU, EN)
+
+### Фаза 3 (6-12 месяцев)
+- AI поиск по фото запчасти
+- VIN декодер
+- Подбор запчастей по автомобилю
+- B2B кабинет для оптовиков
+- API для партнеров
+- Marketplace (другие продавцы)
+
+## 11. Контрольный список внедрения
+
+### Pre-launch
+- Настройка production сервера
+- SSL сертификаты
+- Настройка домена
+- Миграция БД
+- Тестирование всех интеграций
+- Load testing
+- Security audit
+- Настройка backup
+- Настройка мониторинга
+- Документация API
+
+### Launch
+- Запуск production
+- Мониторинг ошибок
+- Проверка всех интеграций
+- Тестовые заказы
+- Оповещение команды
+
+### Post-launch
+- Анализ метрик
+- Сбор обратной связи
+- Исправление багов
+- Оптимизация производительности
+
+## Конец технического задания
+
+Версия: `1.0`  
+Дата: `2024`  
+Автор: `AutoParts Development Team`
+
+Это ТЗ должно покрыть все аспекты проекта для его полной реализации.
