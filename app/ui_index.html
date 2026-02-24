@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AutoParts Shop API</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg-start: #0f172a;
+        --bg-end: #1e293b;
+        --accent: #38bdf8;
+        --accent-soft: rgba(56, 189, 248, 0.35);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: radial-gradient(circle at top, var(--bg-end), var(--bg-start));
+        overflow: hidden;
+      }
+
+      .orb {
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(40px);
+        opacity: 0.6;
+        animation: drift 10s ease-in-out infinite;
+      }
+
+      .orb--1 {
+        width: 220px;
+        height: 220px;
+        background: #22d3ee;
+        top: 10%;
+        left: 8%;
+      }
+
+      .orb--2 {
+        width: 280px;
+        height: 280px;
+        background: #818cf8;
+        right: 4%;
+        bottom: 8%;
+        animation-delay: -4s;
+      }
+
+      .card {
+        position: relative;
+        z-index: 1;
+        width: min(92vw, 760px);
+        padding: 2.4rem;
+        border-radius: 24px;
+        background: linear-gradient(120deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.84));
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        box-shadow: 0 24px 70px rgba(2, 6, 23, 0.5);
+        animation: card-float 6s ease-in-out infinite;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.7rem, 4vw, 2.6rem);
+      }
+
+      p {
+        color: #cbd5e1;
+        margin-top: 0.75rem;
+        line-height: 1.5;
+      }
+
+      .pulse {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        color: #7dd3fc;
+        font-weight: 600;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--accent);
+        box-shadow: 0 0 0 0 var(--accent-soft);
+        animation: pulse 1.8s infinite;
+      }
+
+      .links {
+        margin-top: 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+      }
+
+      a {
+        text-decoration: none;
+        color: #e2e8f0;
+        padding: 0.65rem 1rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        transition: transform 0.25s ease, background-color 0.25s ease;
+      }
+
+      a:hover {
+        transform: translateY(-2px);
+        background: rgba(56, 189, 248, 0.16);
+      }
+
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 var(--accent-soft); }
+        70% { box-shadow: 0 0 0 14px rgba(56, 189, 248, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+      }
+
+      @keyframes drift {
+        0%, 100% { transform: translateY(0px) translateX(0px); }
+        50% { transform: translateY(20px) translateX(14px); }
+      }
+
+      @keyframes card-float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-8px); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="orb orb--1"></div>
+    <div class="orb orb--2"></div>
+
+    <main class="card">
+      <h1>🚗 AutoParts Shop API</h1>
+      <p>Бэкенд запущен. Используйте маршруты API и интерактивную документацию для проверки MVP.</p>
+      <div class="pulse"><span class="dot"></span>Сервис активен</div>
+      <div class="links">
+        <a href="/docs">Swagger Docs</a>
+        <a href="/redoc">ReDoc</a>
+        <a href="/api/categories/popular">Popular categories</a>
+      </div>
+    </main>
+  </body>
+</html>
