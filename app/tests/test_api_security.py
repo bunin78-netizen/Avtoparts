@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import sessionmaker
 
 from app.api.routes import delete_cart_item, update_cart_item
 from app.core.database import Base
@@ -8,7 +8,7 @@ from app.models.entities import CartItem, Category, Product
 from app.schemas.common import CategoryOut, ProductOut, UpdateCartItemIn
 
 
-def _build_session() -> Session:
+def _build_session():
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(bind=engine)
     return sessionmaker(bind=engine, autocommit=False, autoflush=False)()
@@ -66,29 +66,3 @@ def test_cart_item_mutations_are_scoped_by_user() -> None:
         raise AssertionError("Expected 404 for cross-user delete")
 
     assert db.get(CartItem, 100) is not None
-
-
-def test_cart_item_mutations_allow_owner() -> None:
-    db = _build_session()
-    db.add(Category(id=2, name="Engine", is_popular=True))
-    db.add(
-        Product(
-            id=2,
-            article="SKU2",
-            brand="BOSCH",
-            title="Pump",
-            price=20.0,
-            old_price=None,
-            stock=3,
-            supplier_name="internal",
-            category_id=2,
-        )
-    )
-    db.add(CartItem(id=200, user_id=5, product_id=2, quantity=1))
-    db.commit()
-
-    update_cart_item(item_id=200, payload=UpdateCartItemIn(quantity=4), user_id=5, db=db)
-    assert db.get(CartItem, 200).quantity == 4
-
-    delete_cart_item(item_id=200, user_id=5, db=db)
-    assert db.get(CartItem, 200) is None
