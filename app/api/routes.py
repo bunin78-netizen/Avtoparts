@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -67,8 +67,9 @@ def add_cart_item(payload: CartItemIn, user_id: int, db: Session = Depends(get_d
 
 
 @router.put("/cart/items/{item_id}")
-def update_cart_item(item_id: int, payload: UpdateCartItemIn, db: Session = Depends(get_db)) -> dict:
-    item = db.get(CartItem, item_id)
+def update_cart_item(item_id: int, payload: UpdateCartItemIn, user_id: int, db: Session = Depends(get_db)) -> dict:
+    stmt = select(CartItem).where(and_(CartItem.id == item_id, CartItem.user_id == user_id))
+    item = db.scalar(stmt)
     if not item:
         raise HTTPException(status_code=404, detail="Cart item not found")
     item.quantity = payload.quantity
@@ -77,8 +78,9 @@ def update_cart_item(item_id: int, payload: UpdateCartItemIn, db: Session = Depe
 
 
 @router.delete("/cart/items/{item_id}")
-def delete_cart_item(item_id: int, db: Session = Depends(get_db)) -> dict:
-    item = db.get(CartItem, item_id)
+def delete_cart_item(item_id: int, user_id: int, db: Session = Depends(get_db)) -> dict:
+    stmt = select(CartItem).where(and_(CartItem.id == item_id, CartItem.user_id == user_id))
+    item = db.scalar(stmt)
     if not item:
         raise HTTPException(status_code=404, detail="Cart item not found")
     db.delete(item)
