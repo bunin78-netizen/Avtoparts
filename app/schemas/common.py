@@ -31,6 +31,13 @@ class CartItemIn(BaseModel):
     quantity: int = Field(ge=1, le=100)
 
 
+class CartItemOut(ORMBaseModel):
+    id: int
+    user_id: int
+    product_id: int
+    quantity: int
+
+
 class UpdateCartItemIn(BaseModel):
     quantity: int = Field(ge=1, le=100)
 

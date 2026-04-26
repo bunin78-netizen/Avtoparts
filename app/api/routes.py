@@ -7,6 +7,7 @@ from app.integrations.suppliers.omega import OmegaSupplierAPI
 from app.models.entities import CartItem, Category, Order, Product, User
 from app.schemas.common import (
     CartItemIn,
+    CartItemOut,
     CategoryOut,
     OrderCreateIn,
     ProductOut,
@@ -52,7 +53,7 @@ def get_related(product_id: int, db: Session = Depends(get_db)) -> list[Product]
     return db.scalars(stmt).all()
 
 
-@router.get("/cart")
+@router.get("/cart", response_model=list[CartItemOut])
 def get_cart(user_id: int, db: Session = Depends(get_db)) -> list[CartItem]:
     return db.scalars(select(CartItem).where(CartItem.user_id == user_id)).all()
 
